@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TakaJapa - App de Japonês</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0ff;
+        }
+        .nav-link, .nav-link-mobile {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            padding: 8px 0;
+        }
+        .nav-link.active, .nav-link-mobile.active {
+            color: #f9258a;
+            border-bottom-color: #f9258a;
+        }
+        .nav-link:hover, .nav-link-mobile:hover {
+            color: #f9258a;
+        }
+        .card {
+            background-color: #16213e;
+            border: 1px solid #0f3460;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(249, 37, 138, 0.2);
+        }
+        .card-number {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            background-color: rgba(249, 37, 138, 0.2);
+            color: #f9258a;
+            border-radius: 9999px;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.875rem;
+        }
+        .btn-primary {
+            background-color: #f9258a;
+            color: #ffffff;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #e02178;
+        }
+        .btn-premium {
+            background: linear-gradient(90deg, #f9c425, #f9258a);
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(249, 196, 37, 0.3);
+        }
+        .btn-premium:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(249, 196, 37, 0.5);
+        }
+        .btn-gemini {
+            background: linear-gradient(90deg, #f9258a, #ff7e5f);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-gemini:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(249, 37, 138, 0.4);
+        }
+        .quiz-option, .flashcard-input {
+            background-color: #16213e;
+            border: 1px solid #0f3460;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .quiz-option:hover, .flashcard-input:focus {
+            border-color: #f9258a;
+            color: #f9258a;
+            outline: none;
+        }
+        .quiz-option.correct, .flashcard-input.correct {
+            background-color: #1dd3b0;
+            border-color: #1dd3b0;
+            color: #1a1a2e !important;
+        }
+        .quiz-option.incorrect, .flashcard-input.incorrect {
+            background-color: #d90429;
+            border-color: #d90429;
+            color: #ffffff !important;
+        }
+        .quiz-option.disabled {
+            pointer-events: none;
+        }
+        /* Estilos para o Sensei IA */
+        .chat-window { height: 60vh; overflow-y: auto; }
+        .chat-bubble { max-width: 80%; padding: 10px 15px; border-radius: 20px; word-wrap: break-word; }
+        .chat-bubble.user { background-color: #f9258a; color: white; border-bottom-right-radius: 5px; }
+        .chat-bubble.ai { background-color: #16213e; border: 1px solid #0f3460; color: #e0e0ff; border-bottom-left-radius: 5px; }
+        .typing-indicator span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #f9258a; animation: bounce 1.3s infinite; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-10px); } }
+        /* Animação Flashcard */
+        .flashcard-flip { transition: transform 0.6s; transform-style: preserve-3d; }
+        .flashcard-flip.is-flipped { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; position: absolute; width: 100%; height: 100%; }
+        .flashcard-back { transform: rotateY(180deg); }
+        /* Tabela Interativa */
+        .kana-table td {
+            transition: background-color 0.2s ease, color 0.2s ease;
+            cursor: pointer;
+        }
+        .kana-table td:hover {
+            background-color: #f9258a;
+            color: white;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-6">
+
+    <div class="w-full max-w-6xl mx-auto">
+        <!-- Cabeçalho -->
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-4">
+                <img src="Logo - Takanimes.png" alt="Logo Takanimes" class="rounded-full border-2 border-pink-500 w-16 h-16">
+                <div class="flex flex-col">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-white">TakaJapa</h1>
+                    <h2 class="text-lg sm:text-xl text-pink-400">Takanimes</h2>
+                </div>
+            </div>
+            <nav id="main-nav" class="hidden md:flex items-center space-x-4 text-lg">
+                <a class="nav-link active" data-tab="inicio">Início</a>
+                <a class="nav-link" data-tab="aulas">Aulas</a>
+                <a class="nav-link" data-tab="sensei">✨ Sensei IA</a>
+                <a class="nav-link font-bold text-yellow-400" data-tab="membros">⭐ Membros</a>
+            </nav>
+            <div class="md:hidden">
+                <button id="menu-btn" class="text-white focus:outline-none">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Menu Mobile -->
+        <div id="mobile-menu" class="hidden md:hidden mb-8">
+            <ul class="flex flex-col items-center space-y-4 text-lg bg-gray-800/50 p-6 rounded-lg">
+                <li><a class="nav-link-mobile active" data-tab="inicio">Início</a></li>
+                <li><a class="nav-link-mobile" data-tab="aulas">Aulas</a></li>
+                <li><a class="nav-link-mobile" data-tab="flashcards">Flashcards Hiragana</a></li>
+                <li><a class="nav-link-mobile" data-tab="flashcards-katakana">Flashcards Katakana</a></li>
+                <li><a class="nav-link-mobile" data-tab="kanji">Guia de Kanji</a></li>
+                <li><a class="nav-link-mobile" data-tab="quiz">Quiz de Animes</a></li>
+                <li><a class="nav-link-mobile" data-tab="sensei">✨ Sensei IA</a></li>
+                <li><a class="nav-link-mobile font-bold text-yellow-400" data-tab="membros">⭐ Membros</a></li>
+                 <li><a class="nav-link-mobile" data-tab="sobre">Sobre</a></li>
+            </ul>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <main>
+            <!-- Seção Página Inicial -->
+            <section id="inicio" class="tab-content">
+                <h2 class="text-2xl font-semibold mb-6 text-center text-pink-400">Página Inicial</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="card rounded-lg p-6 flex flex-col items-center text-center">
+                        <img src="https://placehold.co/300x200/16213e/FFFFFF?text=Introdução" alt="Introdução à Língua" class="rounded-lg mb-4">
+                        <h3 class="text-xl font-bold mb-2">Introdução à Língua</h3>
+                        <p class="mb-4 text-gray-300">Aprenda os fundamentos do japonês com nosso guia passo a passo.</p>
+                        <a href="#" data-tab="aulas" class="link-to-tab btn-primary font-bold py-2 px-6 rounded-lg w-full mt-auto">Começar agora!</a>
+                    </div>
+                    <div class="card rounded-lg p-6 flex flex-col items-center text-center">
+                        <img src="https://placehold.co/300x200/16213e/FFFFFF?text=Flashcards" alt="Flashcards Interativos" class="rounded-lg mb-4">
+                        <h3 class="text-xl font-bold mb-2">Flashcards</h3>
+                        <p class="mb-4 text-gray-300">Pratique Hiragana e Katakana com um quiz de animes.</p>
+                        <a href="#" data-tab="flashcards" class="link-to-tab btn-primary font-bold py-2 px-6 rounded-lg w-full mt-auto">Praticar</a>
+                    </div>
+                     <div class="card rounded-lg p-6 flex flex-col items-center text-center">
+                        <img src="https://placehold.co/300x200/16213e/FFFFFF?text=Guia+de+Kanji" alt="Guia de Kanji" class="rounded-lg mb-4">
+                        <h3 class="text-xl font-bold mb-2">Guia de Kanji</h3>
+                        <p class="mb-4 text-gray-300">Aprenda os 50 kanji mais importantes que aparecem nos animes.</p>
+                        <a href="#" data-tab="kanji" class="link-to-tab btn-primary font-bold py-2 px-6 rounded-lg w-full mt-auto">Acessar Guia</a>
+                    </div>
+                     <div class="card rounded-lg p-6 flex flex-col items-center text-center">
+                        <img src="https://placehold.co/300x200/16213e/FFFFFF?text=Quiz+de+Animes" alt="Quiz de Animes" class="rounded-lg mb-4">
+                        <h3 class="text-xl font-bold mb-2">Quiz de Animes</h3>
+                        <p class="mb-4 text-gray-300">Teste seu conhecimento otaku e aprenda japonês se divertindo.</p>
+                        <a href="#" data-tab="quiz" class="link-to-tab btn-primary font-bold py-2 px-6 rounded-lg w-full mt-auto">Jogar Agora</a>
+                    </div>
+                     <div class="card rounded-lg p-6 flex flex-col items-center text-center">
+                        <img src="https://placehold.co/300x200/16213e/FFFFFF?text=Sensei+IA" alt="Sensei IA" class="rounded-lg mb-4">
+                        <h3 class="text-xl font-bold mb-2">✨ Sensei IA</h3>
+                        <p class="mb-4 text-gray-300">Tire suas dúvidas de japonês a qualquer hora com seu professor.</p>
+                        <a href="#" data-tab="sensei" class="link-to-tab btn-primary font-bold py-2 px-6 rounded-lg w-full mt-auto">Conversar</a>
+                    </div>
+                    <div class="card rounded-lg p-6 flex flex-col items-center text-center border-2 border-yellow-400">
+                        <img src="https://placehold.co/300x200/16213e/f9c425?text=Grupo+VIP" alt="Grupo VIP" class="rounded-lg mb-4">
+                        <h3 class="text-xl font-bold mb-2 text-yellow-400">⭐ Grupo de Membros</h3>
+                        <p class="mb-4 text-gray-300">Acelere sua fluência com aulas e materiais exclusivos. Acesso vitalício!</p>
+                        <a href="#" data-tab="membros" class="link-to-tab btn-premium font-bold py-2 px-6 rounded-lg w-full mt-auto">Entrar no Grupo</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção de Aulas -->
+            <section id="aulas" class="tab-content hidden flex flex-col">
+                <button class="btn-back btn-primary font-bold py-2 px-4 rounded-lg mb-6 self-start">&lt; Voltar</button>
+                <div class="card rounded-lg p-6 sm:p-8 max-w-4xl mx-auto space-y-8">
+                    <div class="text-center"><h2 class="text-3xl font-bold text-pink-400 mb-2">Aula 1: A Chave para Destravar o Japonês</h2><p class="text-lg text-gray-300">Sua jornada para assistir animes sem legenda começa agora!</p></div>
+                    <div class="grid md:grid-cols-2 gap-8 items-center"><img src="https://placehold.co/400x300/1a1a2e/f9258a?text=ようこそ！" alt="Bem-vindo ao Japonês" class="rounded-lg shadow-lg"><div><h3 class="text-2xl font-semibold text-white mb-4">Sua Jornada Começa Agora!</h3><p class="text-gray-300 mb-4">Olá! Seja bem-vindo(a) à sua introdução ao <span class="font-bold text-pink-400">Nihongo (日本語)</span>. Se você sempre sonhou em entender seus animes favoritos, ler mangás ou mergulhar em uma das culturas mais fascinantes do mundo, você está no lugar certo.</p><p class="text-gray-300">Esqueça a ideia de que japonês é um idioma impossível. Vamos desmistificar essa jornada, mostrando que, com o método certo, seu aprendizado pode ser rápido e, o mais importante, muito divertido.</p></div></div>
+                    <div class="border-t border-gray-700 pt-8"><h3 class="text-2xl font-semibold text-white mb-6 text-center">Os 4 Pilares da Escrita Japonesa</h3><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-center"><div class="bg-gray-800/50 p-4 rounded-lg"><p class="text-4xl mb-2">ひ</p><h4 class="font-bold text-pink-400">HIRAGANA</h4><p class="text-sm text-gray-400">A alma do Japão. Usado para palavras nativas e gramática.</p></div><div class="bg-gray-800/50 p-4 rounded-lg"><p class="text-4xl mb-2">カ</p><h4 class="font-bold text-pink-400">KATAKANA</h4><p class="text-sm text-gray-400">A janela para o mundo. Usado para palavras estrangeiras.</p></div><div class="bg-gray-800/50 p-4 rounded-lg"><p class="text-4xl mb-2">漢</p><h4 class="font-bold text-pink-400">KANJI</h4><p class="text-sm text-gray-400">As ideias em símbolos. Representam conceitos completos.</p></div><div class="bg-gray-800/50 p-4 rounded-lg"><p class="text-4xl mb-2">A</p><h4 class="font-bold text-pink-400">ROMAJI</h4><p class="text-sm text-gray-400">A ponte para nós. Escreve os sons japoneses com nossas letras.</p></div></div></div>
+                    <div class="border-t border-gray-700 pt-8"><h3 class="text-2xl font-semibold text-white mb-2 text-center">Hiragana (ひらがな) - A Alma do Japão</h3><p class="text-center text-gray-400 mb-6">Clique em cada caractere para ouvir a pronúncia!</p><div class="overflow-x-auto"><table id="hiragana-table" class="w-full text-center kana-table"></table></div></div>
+                     <div class="border-t border-gray-700 pt-8"><h3 class="text-2xl font-semibold text-white mb-2 text-center">Katakana (カタカナ) - A Janela para o Mundo</h3><p class="text-center text-gray-400 mb-6">Os sons são os mesmos do Hiragana! Clique para comparar.</p><div class="overflow-x-auto"><table id="katakana-table" class="w-full text-center kana-table"></table></div></div>
+                    <div class="border-t border-gray-700 pt-8 text-center"><h3 class="text-2xl font-semibold text-white mb-6">Parabéns por chegar até aqui!</h3><p class="text-gray-300 mb-6">Você já conhece as ferramentas essenciais. Agora, que tal testar seu conhecimento de uma forma divertida? Vá para a aba de <a href="#" data-tab="flashcards" class="link-to-tab font-bold text-pink-400 hover:underline">Flashcards</a> ou para o nosso <a href="#" data-tab="quiz" class="link-to-tab font-bold text-pink-400 hover:underline">Quiz</a>!</p><img src="https://placehold.co/500x250/1a1a2e/FFFFFF?text=Arigatou+Gozaimasu!" alt="Obrigado" class="rounded-lg shadow-lg mx-auto"></div>
+                </div>
+            </section>
+            
+            <!-- Seção de Flashcards Hiragana -->
+            <section id="flashcards" class="tab-content hidden flex flex-col">
+                <button class="btn-back btn-primary font-bold py-2 px-4 rounded-lg mb-6 self-start">&lt; Voltar</button>
+                <div class="max-w-xl mx-auto text-center"><h2 class="text-2xl font-semibold mb-4 text-pink-400">Flashcards Interativos de Hiragana</h2><p class="mb-6 text-gray-300">Digite o som (romaji) do caractere abaixo. Acerte para revelar uma curiosidade ou frase de anime!</p><div class="[perspective:1000px]"><div id="flashcard-flip" class="flashcard-flip w-full h-80 relative"><div class="flashcard-front card rounded-lg p-6 flex flex-col items-center justify-center"><p id="flashcard-char" class="text-9xl font-bold">あ</p></div><div class="flashcard-back card rounded-lg p-6 flex flex-col items-center justify-center"><img id="flashcard-image" src="https://placehold.co/400x200/f9258a/FFFFFF?text=Cena+de+Anime" class="rounded-lg mb-4 max-h-40 object-cover"><p id="flashcard-phrase" class="text-xl font-bold"></p><p id="flashcard-trivia" class="text-gray-300"></p></div></div></div><div id="flashcard-controls" class="mt-6 relative"><input type="text" id="flashcard-input" class="flashcard-input text-center w-full sm:w-1/2 mx-auto p-4 rounded-lg text-2xl uppercase tracking-widest focus:outline-none" placeholder="Digite o Romaji"><p id="flashcard-feedback" class="text-red-500 font-bold mt-2 h-6"></p><button id="flashcard-check" class="btn-primary font-bold py-3 px-8 rounded-lg w-full sm:w-1/2 mx-auto mt-2 text-lg">Verificar</button><button id="flashcard-next" class="hidden btn-primary font-bold py-3 px-8 rounded-lg w-full sm:w-1/2 mx-auto mt-2 text-lg">Próximo</button></div></div>
+            </section>
+            
+            <!-- Seção de Flashcards Katakana -->
+            <section id="flashcards-katakana" class="tab-content hidden flex flex-col">
+                <button class="btn-back btn-primary font-bold py-2 px-4 rounded-lg mb-6 self-start">&lt; Voltar</button>
+                <div class="max-w-xl mx-auto text-center"><h2 class="text-2xl font-semibold mb-4 text-pink-400">Flashcards Interativos de Katakana</h2><p class="mb-6 text-gray-300">Digite o som (romaji) do caractere abaixo. Acerte para revelar uma curiosidade ou frase de anime!</p><div class="[perspective:1000px]"><div id="flashcard-flip-ktk" class="flashcard-flip w-full h-80 relative"><div class="flashcard-front card rounded-lg p-6 flex flex-col items-center justify-center"><p id="flashcard-char-ktk" class="text-9xl font-bold">カ</p></div><div class="flashcard-back card rounded-lg p-6 flex flex-col items-center justify-center"><img id="flashcard-image-ktk" src="https://placehold.co/400x200/f9258a/FFFFFF?text=Cena+de+Anime" class="rounded-lg mb-4 max-h-40 object-cover"><p id="flashcard-phrase-ktk" class="text-xl font-bold"></p><p id="flashcard-trivia-ktk" class="text-gray-300"></p></div></div></div><div id="flashcard-controls-ktk" class="mt-6 relative"><input type="text" id="flashcard-input-ktk" class="flashcard-input text-center w-full sm:w-1/2 mx-auto p-4 rounded-lg text-2xl uppercase tracking-widest focus:outline-none" placeholder="Digite o Romaji"><p id="flashcard-feedback-ktk" class="text-red-500 font-bold mt-2 h-6"></p><button id="flashcard-check-ktk" class="btn-primary font-bold py-3 px-8 rounded-lg w-full sm:w-1/2 mx-auto mt-2 text-lg">Verificar</button><button id="flashcard-next-ktk" class="hidden btn-primary font-bold py-3 px-8 rounded-lg w-full sm:w-1/2 mx-auto mt-2 text-lg">Próximo</button></div></div>
+            </section>
+            
+            <!-- Seção Guia de Kanji -->
+            <section id="kanji" class="tab-content hidden flex flex-col">
+                <button class="btn-back btn-primary font-bold py-2 px-4 rounded-lg mb-6 self-start">&lt; Voltar</button>
+                 <div class="card rounded-lg p-6 sm:p-8 mb-6"><h2 class="text-2xl font-semibold mb-4 text-center text-pink-400">Desvendando os Kanji</h2><p class="text-center mb-6 text-gray-300 max-w-3xl mx-auto">Kanji são ideogramas que representam ideias. Aprender a "ler" esses desenhos é um passo gigante para a fluência. Cada um deles possui duas leituras, um segredo que vamos desvendar agora.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6"><div><h3 class="text-xl font-bold text-white mb-2">On'yomi (音読み) - A Leitura "Chinesa"</h3><p class="text-gray-300">É a pronúncia que imita o som original do chinês. Geralmente é usada quando vários kanji se juntam para formar uma nova palavra, como peças de um quebra-cabeça. Pense nela como as raízes "importadas" do idioma.</p></div><div><h3 class="text-xl font-bold text-white mb-2">Kun'yomi (訓読み) - A Leitura "Japonesa"</h3><p class="text-gray-300">É a pronúncia da palavra que já existia em japonês antes da chegada do kanji. Geralmente é usada quando o kanji aparece sozinho ou com terminações em Hiragana. É a leitura "nativa" do caractere.</p></div></div><div class="mt-6 border-t border-gray-700 pt-6"><h3 class="text-xl font-bold text-white mb-2 text-center">O que é um Mnemônico?</h3><p class="text-gray-300 text-center">É uma técnica de memorização! A IA vai criar uma historinha ou uma imagem mental criativa para te ajudar a nunca mais esquecer o formato e o significado de um kanji. Clique no botão "✨ Criar Mnemônico" em qualquer card para testar!</p></div></div>
+                <h3 class="text-xl font-semibold mb-6 text-center text-white">Os 50 Kanji Mais Usados</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+            </section>
+
+            <!-- Seção de Quiz -->
+            <section id="quiz" class="tab-content hidden flex flex-col">
+                <button class="btn-back btn-primary font-bold py-2 px-4 rounded-lg mb-6 self-start">&lt; Voltar</button>
+                <div id="quiz-container" class="card rounded-lg p-6 sm:p-8 max-w-2xl mx-auto w-full">
+                    <div id="quiz-start"><h2 class="text-2xl font-semibold mb-4 text-center text-pink-400">Quiz dos Animes!</h2><p class="text-center mb-6 text-gray-300">Acha que conhece o japonês dos animes? Teste seu conhecimento otaku e aprenda se divertindo!</p><button id="start-quiz-btn" class="btn-primary font-bold py-3 px-8 rounded-lg w-full text-lg">Começar Desafio!</button></div>
+                    <div id="quiz-game" class="hidden"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-semibold text-pink-400">Pergunta <span id="question-number"></span></h2><p class="text-lg font-bold">Pontos: <span id="score">0</span></p></div><img id="quiz-image" src="" alt="Cena de Anime" class="rounded-lg mb-4 w-full h-48 object-cover"><p id="question-text" class="text-xl sm:text-2xl mb-6 min-h-[6rem]"></p><div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div><button id="next-question-btn" class="hidden btn-primary font-bold py-3 px-8 rounded-lg w-full mt-8 text-lg">Próxima Pergunta</button></div>
+                    <div id="quiz-end" class="hidden text-center"><h2 class="text-2xl font-semibold mb-4 text-pink-400">Desafio Concluído!</h2><p class="text-xl mb-2">Sua pontuação final foi:</p><p id="final-score" class="text-5xl font-bold text-white my-4"></p><p id="feedback-message" class="text-lg mb-6"></p><button id="restart-quiz-btn" class="btn-primary font-bold py-3 px-8 rounded-lg w-full text-lg">Jogar Novamente</button></div>
+                </div>
+            </section>
+            
+            <!-- Seção Sensei IA -->
+            <section id="sensei" class="tab-content hidden flex flex-col">
+                 <button class="btn-back btn-primary font-bold py-2 px-4 rounded-lg mb-6 self-start">&lt; Voltar</button>
+                <div class="card rounded-lg p-4 sm:p-6 max-w-3xl mx-auto w-full"><h2 class="text-2xl font-semibold mb-4 text-center text-pink-400">✨ Converse com o Taka-Sensei IA</h2><div id="chat-window" class="chat-window p-4 rounded-lg bg-gray-800/50 mb-4 space-y-4"><div class="flex justify-start"><div class="chat-bubble ai">Konnichiwa! Eu sou o Taka-Sensei. Pergunte-me qualquer coisa sobre japonês, desde gramática até cultura. Como posso te ajudar a destravar o Nihongo hoje?</div></div></div><div class="flex space-x-2"><input type="text" id="chat-input" class="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" placeholder="Digite sua pergunta..."><button id="chat-send-btn" class="btn-primary font-bold py-2 px-6 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button></div></div>
+            </section>
+            
+            <!-- Seção Membros -->
+            <section id="membros" class="tab-content hidden flex flex-col">
+                <button class="btn-back btn-primary font-bold py-2 px-4 rounded-lg mb-6 self-start">&lt; Voltar</button>
+                <div class="card rounded-lg p-6 sm:p-10 max-w-3xl mx-auto text-center border-2 border-yellow-400"><h2 class="text-3xl sm:text-4xl font-bold text-yellow-400 mb-4">Acesso ao Grupo VIP TakaJapa ⭐</h2><p class="text-lg text-gray-300 mb-6">Você está a um passo de acelerar sua jornada rumo à fluência e finalmente assistir animes sem legenda.</p><div class="bg-gray-800/50 p-6 rounded-lg text-left space-y-4 my-8"><h3 class="text-2xl font-semibold text-white mb-4 text-center">O que você ganha no Grupo VIP?</h3><p class="flex items-start"><span class="text-green-400 mr-2">✔️</span> <span><strong>Aulas Exclusivas e Aprofundadas:</strong> Material que vai muito além do básico, com análise de diálogos de animes, letras de músicas e muito mais.</span></p><p class="flex items-start"><span class="text-green-400 mr-2">✔️</span> <span><strong>Comunidade de Otakus:</strong> Conecte-se com outros estudantes que têm o mesmo objetivo que você. Troque dicas, pratique e faça amigos.</span></p><p class="flex items-start"><span class="text-green-400 mr-2">✔️</span> <span><strong>Suporte Direto do Sensei:</strong> Tire suas dúvidas diretamente comigo e com a comunidade, recebendo ajuda para destravar seu aprendizado.</span></p><p class="flex items-start"><span class="text-green-400 mr-2">✔️</span> <span><strong>Conteúdo Premium Semanal:</strong> Receba flashcards, guias de kanji e materiais de estudo focados nos animes do momento.</span></p><p class="flex items-start"><span class="text-green-400 mr-2">✔️</span> <span><strong>Acesso Vitalício:</strong> Pague uma vez e tenha acesso para sempre. Sem mensalidades, sem pegadinhas.</span></p></div><p class="text-xl text-white mb-4">Deixe de ser um estudante solitário e junte-se a uma comunidade que vai te levar à fluência.</p><div class="my-6"><p class="text-gray-400 line-through">De R$ 97,00</p><p class="text-4xl font-bold text-white">Por um pagamento único de <span class="text-yellow-400">R$ 29,90</span></p><p class="text-sm text-gray-500 mt-1">(Menos que um mangá por mês, com acesso para sempre!)</p></div><a href="https://t.me/+_qNO75ajAqAyMjYx" target="_blank" class="btn-premium font-bold py-4 px-10 rounded-lg w-full text-xl">QUERO ENTRAR NO GRUPO VIP AGORA!</a></div>
+            </section>
+
+            <!-- Seção Sobre -->
+            <section id="sobre" class="tab-content hidden flex flex-col">
+                <button class="btn-back btn-primary font-bold py-2 px-4 rounded-lg mb-6 self-start">&lt; Voltar</button>
+                <div class="card rounded-lg p-6 sm:p-8 max-w-2xl mx-auto text-center"><h2 class="text-2xl font-semibold mb-6 text-pink-400">Sobre o TakaJapa</h2><img src="https://i.ibb.co/6y402qf/Logo-Takanimes.jpg" alt="Logo Takanimes" class="rounded-full border-2 border-pink-500 mx-auto mb-4 w-24 h-24"><p class="text-lg mb-4 text-gray-300">Este é o seu centro de estudos de japonês, criado para te ajudar a realizar o sonho de assistir seus animes favoritos sem legenda.</p><p class="text-lg text-gray-300">Nosso método é focado em um aprendizado rápido, divertido e intuitivo, usando a cultura que você já ama como a principal ferramenta.</p><a href="#" class="mt-6 inline-block btn-primary font-bold py-3 px-8 rounded-lg text-lg">Siga no Instagram</a></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const navLinksMobile = document.querySelectorAll('.nav-link-mobile');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const menuBtn = document.getElementById('menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            let hiraganaSystem, katakanaSystem;
+            let flashcardHiraganaInitialized = false;
+            let flashcardKatakanaInitialized = false;
+
+            menuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            function activateTab(tabId) {
+                const allLinks = [...navLinks, ...navLinksMobile];
+                allLinks.forEach(nav => {
+                    const navTab = nav.getAttribute('data-tab');
+                    nav.classList.toggle('active', navTab === tabId);
+                });
+                
+                tabContents.forEach(content => {
+                    content.classList.toggle('hidden', content.id !== tabId);
+                });
+
+                if (tabId === 'flashcards' && !flashcardHiraganaInitialized) {
+                    hiraganaSystem.start();
+                    flashcardHiraganaInitialized = true;
+                }
+                if (tabId === 'flashcards-katakana' && !flashcardKatakanaInitialized) {
+                    katakanaSystem.start();
+                    flashcardKatakanaInitialized = true;
+                }
+                if(tabId === 'aulas' && !document.getElementById('hiragana-table').querySelector('tbody')) {
+                    renderKanaTables();
+                }
+                
+                mobileMenu.classList.add('hidden');
+                window.scrollTo(0, 0);
+            }
+            
+            document.querySelectorAll('.nav-link, .nav-link-mobile, .link-to-tab').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    activateTab(link.getAttribute('data-tab'));
+                });
+            });
+
+            document.querySelectorAll('.btn-back').forEach(button => {
+                button.addEventListener('click', () => activateTab('inicio'));
+            });
+
+            const API_KEY = "AIzaSyADB83rGn6yGe-42L7Vx5lMkER2VO8xgOc";
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+            async function callGeminiAPI(prompt, retries = 3) {
+                try {
+                    const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                    const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                           await new Promise(res => setTimeout(res, (4 - retries) * 1000));
+                           return callGeminiAPI(prompt, retries - 1);
+                        }
+                        throw new Error(`API Error: ${response.statusText}`);
+                    }
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+                    return candidate?.content?.parts?.[0]?.text || "Resposta da API inválida.";
+                } catch (error) {
+                    console.error("Erro ao chamar a API Gemini:", error);
+                    return "Desculpe, não consegui gerar uma resposta no momento.";
+                }
+            }
+
+            function setupKanjiMnemonics() {
+                document.querySelectorAll('#kanji .btn-gemini').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const card = e.target.closest('.card');
+                        const container = card.querySelector('.mnemonic-container');
+                        if (!container.classList.contains('hidden') && !container.querySelector('.typing-indicator')) {
+                            container.classList.add('hidden');
+                            container.innerHTML = '';
+                            return;
+                        }
+                        container.classList.remove('hidden');
+                        container.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+                        const kanjiChar = card.querySelector('p').textContent;
+                        const kanjiMeaning = card.querySelector('.kanji-meaning').textContent;
+                        const prompt = `Crie um mnemônico ou uma história curta e visual em português para ajudar a memorizar o kanji '${kanjiChar}', que significa '${kanjiMeaning}'. Seja criativo e fácil de lembrar. Não use asteriscos para formatação.`;
+                        const response = await callGeminiAPI(prompt);
+                        container.innerHTML = response.replace(/\*/g, '').replace(/\n/g, '<br>');
+                    });
+                });
+            }
+
+            const chatWindow = document.getElementById('chat-window');
+            const chatInput = document.getElementById('chat-input');
+            const chatSendBtn = document.getElementById('chat-send-btn');
+            let chatHistory = [];
+            const systemPrompt = "Você é o Taka-Sensei, um professor de japonês amigável, paciente e divertido. Seu público são iniciantes que amam animes. Use uma linguagem simples, dê exemplos práticos (muitas vezes de animes, se apropriado) e sempre seja encorajador. Responda em português do Brasil.";
+            async function handleChat() {
+                const userMessage = chatInput.value.trim();
+                if (!userMessage) return;
+                appendMessage(userMessage, 'user');
+                chatInput.value = '';
+                chatInput.disabled = true;
+                chatSendBtn.disabled = true;
+                appendTypingIndicator();
+                const fullPrompt = `${systemPrompt}\n\nHistórico da conversa:\n${chatHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}\n\nNova pergunta do aluno: ${userMessage}`;
+                const aiResponse = await callGeminiAPI(fullPrompt);
+                removeTypingIndicator();
+                appendMessage(aiResponse, 'ai');
+                chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+                chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+                chatInput.disabled = false;
+                chatSendBtn.disabled = false;
+                chatInput.focus();
+            }
+            function appendMessage(text, sender) {
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+                const messageBubble = document.createElement('div');
+                messageBubble.className = `chat-bubble ${sender}`;
+                messageBubble.innerHTML = text.replace(/\n/g, '<br>');
+                messageWrapper.appendChild(messageBubble);
+                chatWindow.appendChild(messageWrapper);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+            function appendTypingIndicator() {
+                const typingWrapper = document.createElement('div');
+                typingWrapper.id = 'typing-indicator-wrapper';
+                typingWrapper.className = 'flex justify-start';
+                const typingBubble = document.createElement('div');
+                typingBubble.className = 'chat-bubble ai';
+                const indicator = document.createElement('div');
+                indicator.className = 'typing-indicator';
+                indicator.innerHTML = `<span></span><span></span><span></span>`;
+                typingBubble.appendChild(indicator);
+                typingWrapper.appendChild(typingBubble);
+                chatWindow.appendChild(typingWrapper);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+            function removeTypingIndicator() {
+                const indicator = document.getElementById('typing-indicator-wrapper');
+                if (indicator) indicator.remove();
+            }
+            chatSendBtn.addEventListener('click', handleChat);
+            chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleChat(); });
+
+            function setupFlashcardSystem(system, data) {
+                const prefix = system === 'hiragana' ? '' : '-ktk';
+                let shuffledCards = [], currentIndex = 0;
+                const elements = {
+                    flipContainer: document.getElementById(`flashcard-flip${prefix}`),
+                    charEl: document.getElementById(`flashcard-char${prefix}`),
+                    imageEl: document.getElementById(`flashcard-image${prefix}`),
+                    phraseEl: document.getElementById(`flashcard-phrase${prefix}`),
+                    triviaEl: document.getElementById(`flashcard-trivia${prefix}`),
+                    inputEl: document.getElementById(`flashcard-input${prefix}`),
+                    checkBtn: document.getElementById(`flashcard-check${prefix}`),
+                    nextBtn: document.getElementById(`flashcard-next${prefix}`),
+                    feedbackEl: document.getElementById(`flashcard-feedback${prefix}`),
+                };
+                function shuffleArray(array) {
+                    for (let i = array.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [array[i], array[j]] = [array[j], array[i]];
+                    }
+                }
+                function start() {
+                    shuffledCards = [...data];
+                    shuffleArray(shuffledCards);
+                    currentIndex = 0;
+                    loadCard(currentIndex);
+                }
+                function loadCard(index) {
+                    elements.flipContainer.classList.remove('is-flipped');
+                    elements.inputEl.classList.remove('correct', 'incorrect');
+                    elements.feedbackEl.textContent = '';
+                    elements.inputEl.value = '';
+                    elements.inputEl.disabled = false;
+                    elements.checkBtn.classList.remove('hidden');
+                    elements.nextBtn.classList.add('hidden');
+                    if (shuffledCards.length > 0) {
+                        const card = shuffledCards[index];
+                        elements.charEl.textContent = card.char;
+                        elements.imageEl.src = card.image;
+                        elements.phraseEl.textContent = card.phrase;
+                        elements.triviaEl.textContent = card.trivia;
+                    }
+                }
+                function checkAnswer() {
+                     const userAnswer = elements.inputEl.value.toLowerCase().trim();
+                    if (!userAnswer) return;
+                    const correctAnswer = shuffledCards[currentIndex].romaji;
+                    if (userAnswer === correctAnswer) {
+                        elements.inputEl.classList.add('correct');
+                        elements.flipContainer.classList.add('is-flipped');
+                        elements.checkBtn.classList.add('hidden');
+                        elements.nextBtn.classList.remove('hidden');
+                        elements.inputEl.disabled = true;
+                    } else {
+                        elements.inputEl.classList.add('incorrect');
+                        elements.feedbackEl.textContent = 'Resposta errada!';
+                        setTimeout(() => {
+                            elements.feedbackEl.textContent = '';
+                            elements.inputEl.classList.remove('incorrect');
+                            elements.inputEl.value = '';
+                            elements.inputEl.focus();
+                        }, 1500);
+                    }
+                }
+                function nextCard() {
+                    currentIndex++;
+                    if (currentIndex >= shuffledCards.length) {
+                        start();
+                    } else {
+                        loadCard(currentIndex);
+                    }
+                }
+                elements.checkBtn.addEventListener('click', checkAnswer);
+                elements.inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !elements.checkBtn.classList.contains('hidden')) checkAnswer(); });
+                elements.nextBtn.addEventListener('click', nextCard);
+                return { start };
+            }
+
+            const flashcardDataHiragana = [
+                { char: 'あ', romaji: 'a', image: 'https://placehold.co/400x200/f9258a/FFFFFF?text=Arigatou!', phrase: 'ありがとう (Arigatou)', trivia: 'Significa "Obrigado". Uma das primeiras palavras que todo fã de anime aprende!' },
+                { char: 'な', romaji: 'na', image: 'https://placehold.co/400x200/ff7e5f/FFFFFF?text=NANI?!', phrase: 'なに？！ (Nani?!)', trivia: 'A famosa expressão de surpresa de Naruto. Significa "O quê?!"' },
+                { char: 'ち', romaji: 'chi', image: 'https://placehold.co/400x200/1dd3b0/1a1a2e?text=Chiisai!', phrase: '小さい (Chiisai)', trivia: 'Significa "pequeno". Pense no Chibi, a versão pequena e fofa dos personagens.' },
+                { char: 'だ', romaji: 'da', image: 'https://placehold.co/400x200/fcca46/1a1a2e?text=Dattebayo!', phrase: 'だってばよ (Dattebayo!)', trivia: 'O bordão clássico do Naruto, usado para dar ênfase no final das frases.'},
+                { char: 'い', romaji: 'i', image: 'https://placehold.co/400x200/a2d2ff/1a1a2e?text=Itai!', phrase: '痛い (Itai)', trivia: 'Significa "Ai!" ou "Dói!". Você ouve isso toda vez que um personagem se machuca.' }
+            ];
+            const flashcardDataKatakana = [
+                { char: 'カ', romaji: 'ka', image: 'https://placehold.co/400x200/4a4e69/FFFFFF?text=Kamera!', phrase: 'カメラ (Kamera)', trivia: 'Significa "Câmera". Muitas palavras de tecnologia são escritas em Katakana.' },
+                { char: 'ピ', romaji: 'pi', image: 'https://placehold.co/400x200/fca311/14213d?text=Pikachu!', phrase: 'ピカチュウ (Pikachu)', trivia: 'O nome do Pokémon mais famoso do mundo é escrito em Katakana!' },
+                { char: 'ラ', romaji: 'ra', image: 'https://placehold.co/400x200/e5e5e5/000000?text=Ramen!', phrase: 'ラーメン (Ramen)', trivia: 'A comida favorita do Naruto! A palavra vem do chinês "lamian".' },
+                { char: 'ゴ', romaji: 'go', image: 'https://placehold.co/400x200/ff6d00/FFFFFF?text=Goku!', phrase: 'ドラゴンボール (Doragon Booru)', trivia: 'O "Go" de Goku (悟空) é um kanji, mas o "Go" de "Gorila" (ゴリラ) é em Katakana.' },
+                { char: 'サ', romaji: 'sa', image: 'https://placehold.co/400x200/f9c425/000000?text=Saiyajin!', phrase: 'サイヤ人 (Saiyajin)', trivia: 'A raça guerreira de Dragon Ball. "Saiya" é um anagrama de "Yasai" (vegetal).' }
+            ];
+            hiraganaSystem = setupFlashcardSystem('hiragana', flashcardDataHiragana);
+            katakanaSystem = setupFlashcardSystem('katakana', flashcardDataKatakana);
+
+            const hiraganaChart = { 'Vogais': ['あ a', 'い i', 'う u', 'え e', 'お o'], 'K': ['か ka', 'き ki', 'く ku', 'け ke', 'こ ko'], 'S': ['さ sa', 'し shi', 'す su', 'せ se', 'そ so'], 'T': ['た ta', 'ち chi', 'つ tsu', 'て te', 'と to'], 'N': ['な na', 'に ni', 'ぬ nu', 'ね ne', 'の no'], 'H': ['は ha', 'ひ hi', 'ふ fu', 'へ he', 'ほ ho'], 'M': ['ま ma', 'み mi', 'む mu', 'め me', 'も mo'], 'Y': ['や ya', '', 'ゆ yu', '', 'よ yo'], 'R': ['ら ra', 'り ri', 'る ru', 'れ re', 'ろ ro'], 'W': ['わ wa', '', '', '', 'を wo'], 'Nn': ['', '', 'ん n', '', ''] };
+            const katakanaChart = { 'Vogais': ['ア a', 'イ i', 'ウ u', 'エ e', 'オ o'], 'K': ['カ ka', 'キ ki', 'ク ku', 'ケ ke', 'コ ko'], 'S': ['サ sa', 'シ shi', 'ス su', 'セ se', 'ソ so'], 'T': ['タ ta', 'チ chi', 'ツ tsu', 'テ te', 'ト to'], 'N': ['ナ na', 'ニ ni', 'ヌ nu', 'ネ ne', 'ノ no'], 'H': ['ハ ha', 'ヒ hi', 'フ fu', 'ヘ he', 'ホ ho'], 'M': ['マ ma', 'ミ mi', 'ム mu', 'メ me', 'モ mo'], 'Y': ['ヤ ya', '', 'ユ yu', '', 'ヨ yo'], 'R': ['ラ ra', 'リ ri', 'ル ru', 'レ re', 'ロ ro'], 'W': ['ワ wa', '', '', '', 'ヲ wo'], 'Nn': ['', '', 'ン n', '', ''] };
+            const hiraganaTableEl = document.getElementById('hiragana-table');
+            const katakanaTableEl = document.getElementById('katakana-table');
+            function renderKanaTables() {
+                if (hiraganaTableEl.querySelector('tbody')) return;
+                const renderTable = (tableEl, chart) => {
+                    const tbody = document.createElement('tbody');
+                    for (const row in chart) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<th class="p-2 font-bold text-pink-400">${row === 'Nn' ? 'N' : row === 'Vogais' ? '' : row}</th>` + chart[row].map(kana => {
+                            if (!kana) return `<td class="p-3 text-2xl"></td>`;
+                            const [char, romaji] = kana.split(' ');
+                            return `<td class="p-3 text-2xl" data-sound="${romaji}">${char}</td>`;
+                        }).join('');
+                        tbody.appendChild(tr);
+                    }
+                    tableEl.appendChild(tbody);
+                };
+                renderTable(hiraganaTableEl, hiraganaChart);
+                renderTable(katakanaTableEl, katakanaChart);
+            }
+            document.querySelectorAll('.kana-table').forEach(table => {
+                table.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'TD' && e.target.dataset.sound) {
+                        const utterance = new SpeechSynthesisUtterance(e.target.dataset.sound);
+                        utterance.lang = 'ja-JP';
+                        utterance.rate = 0.8;
+                        speechSynthesis.speak(utterance);
+                    }
+                });
+            });
+
+            const quizQuestions = [
+                { question: "Em 'Naruto', qual o significado do bordão 'Dattebayo!' (だってばよ)?", image: "https://placehold.co/400x200/fcca46/1a1a2e?text=Frase+de+Efeito", options: ["Pode crer!", "Uma forma de ênfase", "Estou com fome", "Adeus"], answer: "Uma forma de ênfase" },
+                { question: "Em 'One Piece', o que Luffy grita antes de um grande ataque?", image: "https://placehold.co/400x200/d90429/FFFFFF?text=Piratas", options: ["Itai!", "Nani?!", "Gomu Gomu no...", "Arigatou"], answer: "Gomu Gomu no..." },
+                { question: "Qual é a saudação comum ao entrar em uma loja no Japão?", image: "https://placehold.co/400x200/1dd3b0/1a1a2e?text=Bem-vindo!", options: ["Konnichiwa", "Sayonara", "Irasshaimase", "Sumimasen"], answer: "Irasshaimase" },
+                { question: "Em 'Attack on Titan', o que significa 'Shinzou wo Sasageyo!' (心臓を捧げよ)?", image: "https://placehold.co/400x200/8d99ae/FFFFFF?text=Saudação+Militar", options: ["Atacar os Titãs", "Dediquem seus corações", "Corram pela suas vidas", "É uma ordem"], answer: "Dediquem seus corações" },
+                { question: "O que significa 'Kawaii' (可愛い), uma palavra muito comum em animes?", image: "https://placehold.co/400x200/f9258a/FFFFFF?text=Expressão+Facial", options: ["Forte", "Triste", "Fofo / Adorável", "Engraçado"], answer: "Fofo / Adorável" },
+                { question: "Qual o significado de 'Omae wa mou shindeiru' (お前はもう死んでいる), a famosa frase de Kenshiro em 'Hokuto no Ken'?", image: "https://placehold.co/400x200/4a4e69/FFFFFF?text=Cena+de+Luta", options: ["Eu te amo", "Você já está morto", "Vamos lutar!", "Qual é o seu nome?"], answer: "Você já está morto" },
+                { question: "Quando um personagem quer tranquilizar outro, qual palavra ele frequentemente usa para dizer 'Está tudo bem'?", image: "https://placehold.co/400x200/1dd3b0/1a1a2e?text=Conversa+Amigável", options: ["Sayonara", "Gomen nasai", "Daijoubu", "Mendokusai"], answer: "Daijoubu" },
+                { question: "Em 'Jujutsu Kaisen', o que significa 'Ryōiki Tenkai' (領域展開)?", image: "https://placehold.co/400x200/8d99ae/FFFFFF?text=Técnica+Suprema", options: ["Ataque total", "Obrigado pela comida", "Técnica amaldiçoada", "Expansão de Domínio"], answer: "Expansão de Domínio" },
+                { question: "Qual dessas palavras é um insulto comum em animes, significando 'idiota' ou 'bobo'?", image: "https://placehold.co/400x200/d90429/FFFFFF?text=Discussão", options: ["Sugoi", "Baka", "Kawaii", "Senpai"], answer: "Baka" },
+                { question: "O que significa a palavra 'Nakama' (仲間), tão importante em animes como 'One Piece'?", image: "https://placehold.co/400x200/f9258a/FFFFFF?text=Laços+de+Amizade", options: ["Família", "Professor", "Inimigo", "Companheiro / Tripulação"], answer: "Companheiro / Tripulação" }
+            ];
+
+            const quizStart = document.getElementById('quiz-start');
+            const quizGame = document.getElementById('quiz-game');
+            const quizEnd = document.getElementById('quiz-end');
+            const startQuizBtn = document.getElementById('start-quiz-btn');
+            const questionNumber = document.getElementById('question-number');
+            const questionText = document.getElementById('question-text');
+            const quizImage = document.getElementById('quiz-image');
+            const optionsContainer = document.getElementById('options-container');
+            const scoreDisplay = document.getElementById('score');
+            const nextQuestionBtn = document.getElementById('next-question-btn');
+            const finalScore = document.getElementById('final-score');
+            const feedbackMessage = document.getElementById('feedback-message');
+            const restartQuizBtn = document.getElementById('restart-quiz-btn');
+            let currentQuestionIndex = 0, score = 0;
+            function startQuiz() { quizStart.classList.add('hidden'); quizEnd.classList.add('hidden'); quizGame.classList.remove('hidden'); currentQuestionIndex = 0; score = 0; scoreDisplay.textContent = score; nextQuestionBtn.classList.add('hidden'); showQuestion(); }
+            function showQuestion() {
+                resetState();
+                let currentQuestion = quizQuestions[currentQuestionIndex];
+                questionNumber.textContent = `${currentQuestionIndex + 1}/${quizQuestions.length}`;
+                quizImage.src = currentQuestion.image;
+                questionText.textContent = currentQuestion.question;
+                currentQuestion.options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('quiz-option', 'p-4', 'rounded-lg', 'font-semibold', 'text-left');
+                    button.addEventListener('click', selectAnswer);
+                    optionsContainer.appendChild(button);
+                });
+            }
+            function resetState(){ nextQuestionBtn.classList.add('hidden'); while(optionsContainer.firstChild){ optionsContainer.removeChild(optionsContainer.firstChild); } }
+            function selectAnswer(e) {
+                const selectedBtn = e.target;
+                const isCorrect = selectedBtn.textContent === quizQuestions[currentQuestionIndex].answer;
+                if (isCorrect) {
+                    selectedBtn.classList.add('correct');
+                    score += 10;
+                    scoreDisplay.textContent = score;
+                } else {
+                    selectedBtn.classList.add('incorrect');
+                }
+                Array.from(optionsContainer.children).forEach(button => {
+                     if(button.textContent === quizQuestions[currentQuestionIndex].answer) button.classList.add('correct');
+                    button.classList.add('disabled');
+                });
+                nextQuestionBtn.classList.remove('hidden');
+            }
+            function handleNextButton(){ currentQuestionIndex++; if(currentQuestionIndex < quizQuestions.length) showQuestion(); else showScore(); }
+            function showScore(){
+                quizGame.classList.add('hidden');
+                quizEnd.classList.remove('hidden');
+                finalScore.textContent = score;
+                let message = "";
+                if (score >= 80) message = "Excelente! Você é um verdadeiro Hokage do conhecimento otaku!";
+                else if (score >= 50) message = "Muito bom! Você está no caminho para se tornar um mestre Pokémon.";
+                else message = "Continue assistindo animes e estudando! Ganbatte!";
+                feedbackMessage.textContent = message;
+            }
+            startQuizBtn.addEventListener('click', startQuiz);
+            nextQuestionBtn.addEventListener('click', handleNextButton);
+            restartQuizBtn.addEventListener('click', startQuiz);
+            
+            const kanjiData = [
+                { kanji: '日', meaning: 'Dia, Sol, Japão', on: 'NICHI, JITSU', kun: 'hi, -bi, -ka', ex: '日本 (Nihon) - Japão' }, { kanji: '一', meaning: 'Um', on: 'ICHI, ITSU', kun: 'hito(tsu)', ex: '一番 (ichiban) - O melhor' }, { kanji: '国', meaning: 'País', on: 'KOKU', kun: 'kuni', ex: '外国 (gaikoku) - País estrangeiro' }, { kanji: '人', meaning: 'Pessoa', on: 'JIN, NIN', kun: 'hito', ex: '三人 (sannin) - Três pessoas' }, { kanji: '年', meaning: 'Ano', on: 'NEN', kun: 'toshi', ex: '今年 (kotoshi) - Este ano' }, { kanji: '大', meaning: 'Grande', on: 'DAI, TAI', kun: 'oo(kii)', ex: '大学 (daigaku) - Universidade' }, { kanji: '十', meaning: 'Dez', on: 'JUU', kun: 'too, to', ex: '十日 (tooka) - Dia dez' }, { kanji: '二', meaning: 'Dois', on: 'NI', kun: 'futa(tsu)', ex: '二月 (nigatsu) - Fevereiro' }, { kanji: '本', meaning: 'Livro, Origem', on: 'HON', kun: 'moto', ex: '本 (hon) - Livro' }, { kanji: '中', meaning: 'Dentro, Meio', on: 'CHUU', kun: 'naka', ex: '中国 (chuugoku) - China' }, { kanji: '長', meaning: 'Longo, Chefe', on: 'CHOU', kun: 'naga(i)', ex: '社長 (shachou) - Presidente da empresa' }, { kanji: '出', meaning: 'Sair', on: 'SHUTSU', kun: 'de(ru), da(su)', ex: '出口 (deguchi) - Saída' }, { kanji: '三', meaning: 'Três', on: 'SAN', kun: 'mit(tsu)', ex: '三日 (mikka) - Dia três' }, { kanji: '時', meaning: 'Tempo, Hora', on: 'JI', kun: 'toki', ex: '時間 (jikan) - Tempo' }, { kanji: '行', meaning: 'Ir', on: 'KOU, GYOU', kun: 'i(ku), yu(ku)', ex: '銀行 (ginkou) - Banco' }, { kanji: '見', meaning: 'Ver', on: 'KEN', kun: 'mi(ru)', ex: '見る (miru) - Ver' }, { kanji: '月', meaning: 'Mês, Lua', on: 'GETSU, GATSU', kun: 'tsuki', ex: '月曜日 (getsuyoubi) - Segunda-feira' }, { kanji: '分', meaning: 'Minuto, Dividir', on: 'FUN, BUN', kun: 'wa(karu)', ex: '分かる (wakaru) - Entender' }, { kanji: '後', meaning: 'Depois, Atrás', on: 'GO, KOU', kun: 'ushiro, ato', ex: '午後 (gogo) - P.M. (tarde)' }, { kanji: '前', meaning: 'Antes, Frente', on: 'ZEN', kun: 'mae', ex: '名前 (namae) - Nome' }, { kanji: '生', meaning: 'Vida, Nascer', on: 'SEI, SHOU', kun: 'i(kiru), u(mareru)', ex: '先生 (sensei) - Professor' }, { kanji: '五', meaning: 'Cinco', on: 'GO', kun: 'itsu(tsu)', ex: '五日 (itsuka) - Dia cinco' }, { kanji: '間', meaning: 'Intervalo, Entre', on: 'KAN, KEN', kun: 'aida, ma', ex: '人間 (ningen) - Ser humano' }, { kanji: '上', meaning: 'Cima, Sobre', on: 'JOU', kun: 'ue, a(garu)', ex: '上手 (jouzu) - Habilidoso' }, { kanji: '東', meaning: 'Leste', on: 'TOU', kun: 'higashi', ex: '東京 (toukyou) - Tóquio' }, { kanji: '四', meaning: 'Quatro', on: 'SHI', kun: 'yon, yot(tsu)', ex: '四月 (shigatsu) - Abril' }, { kanji: '今', meaning: 'Agora', on: 'KON, KIN', kun: 'ima', ex: '今日 (kyou) - Hoje' }, { kanji: '金', meaning: 'Ouro, Dinheiro', on: 'KIN', kun: 'kane', ex: '金曜日 (kinyoubi) - Sexta-feira' }, { kanji: '九', meaning: 'Nove', on: 'KYUU, KU', kun: 'kokono(tsu)', ex: '九日 (kokonoka) - Dia nove' }, { kanji: '入', meaning: 'Entrar', on: 'NYUU', kun: 'i(ru), hai(ru)', ex: '入口 (iriguchi) - Entrada' }, { kanji: '学', meaning: 'Aprender', on: 'GAKU', kun: 'mana(bu)', ex: '学校 (gakkou) - Escola' }, { kanji: '高', meaning: 'Alto, Caro', on: 'KOU', kun: 'taka(i)', ex: '高校 (koukou) - Ensino médio' }, { kanji: '円', meaning: 'Círculo, Yen', on: 'EN', kun: 'maru(i)', ex: '百円 (hyaku en) - Cem ienes' }, { kanji: '子', meaning: 'Criança', on: 'SHI, SU', kun: 'ko', ex: '子供 (kodomo) - Criança' }, { kanji: '外', meaning: 'Fora', on: 'GAI, GE', kun: 'soto, hoka', ex: '外人 (gaijin) - Estrangeiro' }, { kanji: '八', meaning: 'Oito', on: 'HACHI', kun: 'yat(tsu)', ex: '八日 (youka) - Dia oito' }, { kanji: '六', meaning: 'Seis', on: 'ROKU', kun: 'mut(tsu)', ex: '六日 (muika) - Dia seis' }, { kanji: '下', meaning: 'Baixo, Debaixo', on: 'KA, GE', kun: 'shita, kuda(saru)', ex: '地下鉄 (chikatetsu) - Metrô' }, { kanji: '来', meaning: 'Vir', on: 'RAI', kun: 'ku(ru)', ex: '来週 (raishuu) - Próxima semana' }, { kanji: '気', meaning: 'Espírito, Ar', on: 'KI, KE', kun: 'iki', ex: '元気 (genki) - Bem, saudável' }, { kanji: '小', meaning: 'Pequeno', on: 'SHOU', kun: 'chii(sai), ko', ex: '小さい (chiisai) - Pequeno' }, { kanji: '七', meaning: 'Sete', on: 'SHICHI', kun: 'nana(tsu)', ex: '七日 (nanoka) - Dia sete' }, { kanji: '山', meaning: 'Montanha', on: 'SAN', kun: 'yama', ex: '富士山 (fujisan) - Monte Fuji' }, { kanji: '話', meaning: 'Falar', on: 'WA', kun: 'hana(su)', ex: '電話 (denwa) - Telefone' }, { kanji: '女', meaning: 'Mulher', on: 'JO', kun: 'onna', ex: '彼女 (kanojo) - Ela' }, { kanji: '北', meaning: 'Norte', on: 'HOKU', kun: 'kita', ex: '北海道 (hokkaidou) - Hokkaido' }, { kanji: '午', meaning: 'Meio-dia', on: 'GO', kun: 'uma', ex: '午前 (gozen) - A.M. (manhã)' }, { kanji: '百', meaning: 'Cem', on: 'HYAKU', kun: 'momo', ex: '三百 (sanbyaku) - Trezentos' }, { kanji: '書', meaning: 'Escrever', on: 'SHO', kun: 'ka(ku)', ex: '辞書 (jisho) - Dicionário' }, { kanji: '名', meaning: 'Nome', on: 'MEI, MYOU', kun: 'na', ex: '有名 (yuumei) - Famoso' }
+            ];
+
+            function renderKanji() {
+                const container = document.querySelector('#kanji .grid');
+                if(!container) return;
+                container.innerHTML = kanjiData.map((item, index) => `
+                    <div class="card rounded-lg p-6 flex flex-col text-center"><span class="card-number">${index + 1}</span><p class="text-6xl font-bold mb-2">${item.kanji}</p><h3 class="kanji-meaning text-lg font-bold mb-2">${item.meaning}</h3><div class="text-left w-full text-sm"><p class="text-gray-400">On: <span class="font-semibold text-white">${item.on}</span></p><p class="text-gray-400">Kun: <span class="font-semibold text-white">${item.kun}</span></p><p class="mt-1 text-gray-300">Ex: <span class="font-semibold text-pink-400">${item.ex}</span></p></div><div class="mt-4 w-full"><button class="btn-gemini font-bold py-2 px-4 rounded-lg w-full mb-2">✨ Criar Mnemônico</button><div class="mnemonic-container p-3 rounded-lg bg-gray-800/50 text-left text-sm min-h-[50px] hidden"></div></div></div>
+                `).join('');
+                setupKanjiMnemonics();
+            }
+            renderKanji();
+            
+            activateTab('inicio');
+        });
+    </script>
+</body>
+</html>
+
